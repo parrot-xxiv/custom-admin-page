@@ -18,6 +18,9 @@
                                 <td x-text="item.id"></td>
                                 <td x-text="item.title"></td>
                                 <td x-text="item.description"></td>
+                                <td x-text="item.brand[0].name"></td>
+                                <td x-text="item.type[0].name"></td>
+                                <td x-text="item.price"></td>
                             </tr>
                         </template>
                     </tbody>
@@ -52,17 +55,23 @@
                         <span x-text="`Page ${currentPage} of ${totalPages} | Total Items: ${totalItems}`"></span>
                     </div>
                 </div>
+                <button @click="generateCameras">Generate Records</button>
+                <button @click="deleteAllCameras">Delete All Cameras</button>
             </div>
         </template>
-    </div>
-
-    <div>
-        <button id="generate-records">Generate Records</button>
     </div>
 </div>
 <!-- Include Alpine.js from CDN -->
 <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 <script>
+    const brand = ['nikon', 'canon'];
+    const type = ['dslr', 'action-camera']
+
+    function getRandomItem(arr) {
+        const randomIndex = Math.floor(Math.random() * arr.length); // Generate a random index
+        return arr[randomIndex]; // Return the item at that index
+    }
+
     function tableData() {
         return {
             loading: true,
@@ -71,10 +80,15 @@
             currentPage: 1,
             totalPages: 1,
             totalItems: 0,
+            faker: null,
+            async init() {
+                const f = await import('https://esm.sh/@faker-js/faker');
+                this.faker = await f.faker
+            },
             loadTable() {
                 this.loading = true;
                 let params = new URLSearchParams();
-                params.append('action', 'hjt_get_table_data');
+                params.append('action', 'get_camera_list');
                 params.append('s', this.search);
                 params.append('paged', this.currentPage);
                 fetch(ajaxurl + '?' + params.toString())
@@ -131,7 +145,63 @@
                     pages.push(i);
                 }
                 return pages;
-            }
+            },
+            // Delete all records
+            deleteAllCameras() {
+                if (confirm('Are you sure you want to delete all cameras?')) {
+                    let params = new URLSearchParams();
+                    params.append('action', 'delete_all_camera');
+
+                    fetch(ajaxurl + '?' + params.toString(), {
+                            method: 'POST'
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // After successful deletion, reload the table
+                                this.loadTable();
+                            } else {
+                                alert('Error deleting the cameras.');
+                            }
+                        })
+                        .catch(() => {
+                            alert('There was an error deleting the cameras.');
+                        });
+                }
+            },
+            generateCameras() {
+                var cameraData = {
+                    title: 'Camera ' + this.faker.commerce.productName(), // 'Incredible Soft Gloves',
+                    description: this.faker.company.catchPhrase(), // 'Upgradable systematic flexibility' 
+                    type: getRandomItem(type),
+                    brand: getRandomItem(brand)
+                };
+
+                // Prepare the form data (including the nonce for security)
+                const formData = new FormData();
+                formData.append('action', 'create_camera_post'); // The action hook
+                formData.append('nonce', cameraAjax.nonce); // The nonce value for security (replace with your actual nonce)
+                formData.append('camera_data', JSON.stringify(cameraData)); // Add the camera data
+
+                // Send the request using fetch
+                fetch(ajaxurl, {
+                        method: 'POST',
+                        body: formData,
+                    })
+                    .then(response => response.json()) // Parse the JSON response
+                    .then(data => {
+                        if (data.success) {
+                            console.log('Post created successfully:', data.message);
+                            this.loadTable();
+                        } else {
+                            console.log('Error creating post:', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Request failed', error);
+                    });
+
+            },
         }
     }
 </script>
