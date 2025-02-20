@@ -105,11 +105,18 @@ function hjt_get_table_data() {
         while ( $query->have_posts() ) {
             $query->the_post();
 
+            $description = get_post_meta( get_the_ID(), 'description', true );
+            $price = get_post_meta( get_the_ID(), 'price', true );
+
             // Build your row data. For example, using post ID, title and a meta field for email.
             $data[] = [
                 'id'    => get_the_ID(),
                 'title'  => get_the_title(),
-                'description' => get_the_content()
+                // 'description' => get_the_content()
+                'description' => $description,
+                'price' => $price, 
+                'brand' => wp_get_post_terms(get_the_ID(), 'brand'),
+                'type' => wp_get_post_terms(get_the_ID(), 'type')
             ];
         }
     }
