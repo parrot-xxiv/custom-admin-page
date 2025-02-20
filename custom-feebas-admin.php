@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-include_once(plugin_dir_path(__FILE__) . 'inc/api-generate-posts.php');
+include_once(plugin_dir_path(__FILE__) . 'inc/ajax-camera.php');
 include_once(plugin_dir_path(__FILE__) . 'inc/dialog-ui.php');
 include_once(plugin_dir_path(__FILE__) . 'inc/wp-table.php');
 include_once(plugin_dir_path(__FILE__) . 'inc/headless-table.php');
