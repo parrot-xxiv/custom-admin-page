@@ -1,3 +1,17 @@
+<?php
+
+$brands = get_terms([
+    'taxonomy' => 'brand',
+    'hide_empty' => false,
+]);
+
+$types = get_terms([
+    'taxonomy' => 'type',
+    'hide_empty' => false,
+]);
+
+?>
+
 <div class="wrap">
     <h1><?php esc_html_e('Camera List', 'camera-list'); ?></h1>
     <div x-data="tableData()" x-init="loadTable()">
@@ -11,6 +25,9 @@
         </template>
         <template x-if="!loading">
             <div>
+                <!-- "Add Camera" Button -->
+                <button @click="openAddCameraModal" class="button"><?php esc_html_e('Add Camera', 'camera-list'); ?></button>
+
                 <table class="wp-list-table widefat striped">
                     <tbody>
                         <template x-for="item in items" :key="item.id">
@@ -18,8 +35,8 @@
                                 <td x-text="item.id"></td>
                                 <td x-text="item.title"></td>
                                 <td x-text="item.description"></td>
-                                <td x-text="item.brand[0].name"></td>
-                                <td x-text="item.type[0].name"></td>
+                                <td x-text="item.brand[0]?.name"></td>
+                                <td x-text="item.type[0]?.name"></td>
                                 <td x-text="item.price"></td>
                             </tr>
                         </template>
@@ -59,11 +76,81 @@
                 <button @click="deleteAllCameras">Delete All Cameras</button>
             </div>
         </template>
+        <style>
+            .hidden {
+                visibility: hidden
+            }
+        </style>
+        <!-- Add Camera Modal -->
+        <div
+            :class="showAddCameraModal||'hidden'"
+            style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+           background-color: rgba(0, 0, 0, 0.5); display: grid; place-items: center; 
+           z-index: 9999; transition: opacity 0.3s ease-in-out;"
+            x-cloak x-transition>
+
+
+            <div class="modal-content" style="background: white; padding: 2em; border-radius: 8px; width:500px; position: relative;">
+
+                <h2><?php esc_html_e('Add New Camera', 'camera-list'); ?></h2>
+                <form @submit.prevent="submitAddCamera">
+                    <div class="form-field">
+                        <label for="camera-title"><?php esc_html_e('Camera', 'camera-list'); ?></label>
+                        <input type="text" id="camera-title" x-model="newCamera.title" required />
+                    </div>
+                    <div class="form-field">
+                        <label for="camera-description"><?php esc_html_e('Description', 'camera-list'); ?></label>
+                        <input type="text" id="camera-description" x-model="newCamera.description" required />
+                    </div>
+                    <div class="form-field">
+                        <label for="camera-brand"><?php esc_html_e('Brand', 'camera-list'); ?></label>
+                        <select id="camera-brand" x-model="newCamera.brand" required>
+                            <option value=""><?php esc_html_e('Select a brand', 'camera-list'); ?></option>
+                            <?php foreach ($brands as $brand) : ?>
+                                <option value="<?php echo esc_attr($brand->slug); ?>">
+                                    <?php echo esc_html($brand->name); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="camera-type"><?php esc_html_e('Type', 'camera-list'); ?></label>
+                        <select id="camera-type" x-model="newCamera.type" required>
+                            <option value=""><?php esc_html_e('Select a type', 'camera-list'); ?></option>
+                            <?php foreach ($types as $type) : ?>
+                                <option value="<?php echo esc_attr($type->slug); ?>">
+                                    <?php echo esc_html($type->name); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label for="camera-price"><?php esc_html_e('Price', 'camera-list'); ?></label>
+                        <input type="number" id="camera-price" x-model="newCamera.price" required />
+                    </div>
+                    <!-- New Image Field -->
+                    <div class="form-field">
+                        <label><?php esc_html_e('Image', 'camera-list'); ?></label>
+                        <button type="button" @click="openMediaUploader" class="button">
+                            <?php esc_html_e('Select Image', 'camera-list'); ?>
+                        </button>
+                        <template x-if="newCamera.imageUrl">
+                            <img :src="newCamera.imageUrl" alt="<?php esc_attr_e('Selected Image', 'camera-list'); ?>" style="max-width: 100px; margin-top: 10px;" />
+                        </template>
+                    </div>
+                    <div class="modal-footer" style="margin-top: 1em; display: flex; justify-content: space-between;">
+                        <button type="button" @click="closeAddCameraModal" class="button"><?php esc_html_e('Cancel', 'camera-list'); ?></button>
+                        <button type="submit" class="button button-primary"><?php esc_html_e('Add Camera', 'camera-list'); ?></button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 <!-- Include Alpine.js from CDN -->
-<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-<script>
+<!-- <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script> -->
+<!-- <script>
     const brand = ['nikon', 'canon'];
     const type = ['dslr', 'action-camera']
 
@@ -75,6 +162,7 @@
     function tableData() {
         return {
             loading: true,
+            showAddCameraModal: false,
             items: [],
             search: '',
             currentPage: 1,
@@ -112,6 +200,81 @@
                         this.items = [];
                         this.loading = false;
                     });
+            },
+            // Method to open the modal
+            openAddCameraModal() {
+                this.showAddCameraModal = true;
+            },
+            // Method to close the modal
+            closeAddCameraModal() {
+                this.showAddCameraModal = false;
+            },
+            newCamera: {
+                title: '',
+                description: '',
+                brand: '',
+                type: '',
+                price: 0,
+            },
+            openMediaUploader() {
+                // Create the media frame.
+                var frame = wp.media({
+                    title: 'Select or Upload Image',
+                    button: {
+                        text: 'Use this image'
+                    },
+                    multiple: false // Set to false to allow only one file to be selected
+                });
+                // When an image is selected in the media frame...
+                frame.on('select', () => {
+                    var attachment = frame.state().get('selection').first().toJSON();
+                    // Save the attachment ID and URL to newCamera object
+                    this.newCamera.image = attachment.id;
+                    this.newCamera.imageUrl = attachment.url;
+                });
+                // Finally, open the modal on click
+                frame.open();
+            },
+            // Method to submit new camera data
+            submitAddCamera() {
+                // create ajax request
+
+                var cameraData = {
+                    title: this.newCamera.title, // 'Incredible Soft Gloves',
+                    description: this.newCamera.description, // 'Upgradable systematic flexibility' 
+                    type: this.newCamera.type,
+                    brand: this.newCamera.brand
+                };
+
+                // Prepare the form data (including the nonce for security)
+                const formData = new FormData();
+                formData.append('action', 'create_camera_post'); // The action hook
+                formData.append('nonce', '<?php echo wp_create_nonce('create_camera_post_nonce'); ?>'); // The nonce value for security (replace with your actual nonce)
+                formData.append('camera_data', JSON.stringify(cameraData)); // Add the camera data
+
+                // Send the request using fetch
+                fetch(ajaxurl, {
+                        method: 'POST',
+                        body: formData,
+                    })
+                    .then(response => response.json()) // Parse the JSON response
+                    .then(data => {
+                        if (data.success) {
+                            console.log('Post created successfully:', data.message);
+                            this.loadTable();
+                        } else {
+                            console.log('Error creating post:', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Request failed', error);
+                    });
+
+
+                // After adding, close the modal
+                this.closeAddCameraModal();
+                // Optionally, refresh the list of cameras
+                this.loadTable();
             },
             searchTable() {
                 this.currentPage = 1;
@@ -180,7 +343,7 @@
                 // Prepare the form data (including the nonce for security)
                 const formData = new FormData();
                 formData.append('action', 'create_camera_post'); // The action hook
-                formData.append('nonce', cameraAjax.nonce); // The nonce value for security (replace with your actual nonce)
+                formData.append('nonce', '<?php echo wp_create_nonce('create_camera_post_nonce'); ?>'); // The nonce value for security (replace with your actual nonce)
                 formData.append('camera_data', JSON.stringify(cameraData)); // Add the camera data
 
                 // Send the request using fetch
@@ -204,4 +367,4 @@
             },
         }
     }
-</script>
+</script> -->
