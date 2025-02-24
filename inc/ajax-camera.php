@@ -60,8 +60,12 @@ function create_camera_post()
         update_post_meta($post_id, 'description', sanitize_text_field($camera_data['description']));
     }
 
-    if (isset($camera_data['price']) && !empty($camera_data['price'])) {
-        update_post_meta($post_id, 'price', sanitize_text_field($camera_data['price']));
+    if (isset($camera_data['daily']) && !empty($camera_data['daily'])) {
+        update_post_meta($post_id, 'daily', sanitize_text_field($camera_data['daily']));
+    }
+
+    if (isset($camera_data['weekly']) && !empty($camera_data['weekly'])) {
+        update_post_meta($post_id, 'price', sanitize_text_field($camera_data['daily']));
     }
 
     // Example: Add a custom field (price)
@@ -161,7 +165,9 @@ function get_camera_list() {
             $query->the_post();
 
             $description = get_post_meta( get_the_ID(), 'description', true );
-            $price = get_post_meta( get_the_ID(), 'price', true );
+            // $price = get_post_meta( get_the_ID(), 'price', true );
+            $daily = get_post_meta( get_the_ID(), 'daily', true );
+            $weekly = get_post_meta( get_the_ID(), 'weekly', true );
             $image_url = get_post_meta( get_the_ID(), 'image_url', true );
 
             // Build your row data. For example, using post ID, title and a meta field for email.
@@ -170,7 +176,8 @@ function get_camera_list() {
                 'title'  => get_the_title(),
                 // 'description' => get_the_content()
                 'description' => $description,
-                'price' => $price, 
+                'daily' => $daily,
+                'weekly' => $weekly,
                 'brand' => wp_get_post_terms(get_the_ID(), 'brand'),
                 'type' => wp_get_post_terms(get_the_ID(), 'type'),
                 'image_url' => $image_url 
