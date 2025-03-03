@@ -65,7 +65,7 @@ function create_camera_post()
     }
 
     if (isset($camera_data['weekly']) && !empty($camera_data['weekly'])) {
-        update_post_meta($post_id, 'price', sanitize_text_field($camera_data['daily']));
+        update_post_meta($post_id, 'weekly', sanitize_text_field($camera_data['weekly']));
     }
 
     // Example: Add a custom field (price)
