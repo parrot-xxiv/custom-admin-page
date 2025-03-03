@@ -62,7 +62,8 @@ function tableData() {
             description: '',
             brand: '',
             type: '',
-            price: '',
+            daily: '',
+            weekly: '',
             image: '',
             imageUrl: ''
         },
@@ -70,9 +71,7 @@ function tableData() {
             // Create the media frame.
             var frame = wp.media({
                 title: 'dsd',
-                button: {
-                    text: 'dsd'
-                    },
+                button: { text: 'dsd' },
                 multiple: false // Set to false to allow only one file to be selected
             });
             // When an image is selected in the media frame...
@@ -94,7 +93,8 @@ function tableData() {
                 description: this.newCamera.description, // 'Upgradable systematic flexibility' 
                 type: this.newCamera.type,
                 brand: this.newCamera.brand,
-                price: this.newCamera.price,
+                daily: this.newCamera.daily,
+                weekly: this.newCamera.weekly,
                 image: this.newCamera.image,
                 imageUrl: this.newCamera.imageUrl
             };
@@ -192,7 +192,8 @@ function tableData() {
                 description: this.faker.company.catchPhrase(), // 'Upgradable systematic flexibility' 
                 type: getRandomItem(type),
                 brand: getRandomItem(brand),
-                price: 2934
+                daily: 2934,
+                weekly: 6789,
             };
 
             // Prepare the form data (including the nonce for security)
