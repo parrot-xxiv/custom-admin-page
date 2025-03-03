@@ -126,8 +126,12 @@ $types = get_terms([
                         </select>
                     </div>
                     <div class="form-field">
-                        <label for="camera-price"><?php esc_html_e('Price', 'camera-list'); ?></label>
-                        <input type="number" id="camera-price" x-model="newCamera.price" required />
+                        <label for="camera-weekly"><?php esc_html_e('Daily Price', 'camera-list'); ?></label>
+                        <input type="number" id="camera-daily" x-model="newCamera.daily" required />
+                    </div>
+                    <div class="form-field">
+                        <label for="camera-weekly"><?php esc_html_e('Weekly Price', 'camera-list'); ?></label>
+                        <input type="number" id="camera-weekly" x-model="newCamera.weekly" required />
                     </div>
                     <!-- New Image Field -->
                     <div class="form-field">
