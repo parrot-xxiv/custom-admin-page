@@ -57,15 +57,15 @@ function create_camera_post()
 
     // Handle custom meta and taxonomy fields
     if (isset($camera_data['description']) && !empty($camera_data['description'])) {
-        update_post_meta($post_id, 'description', sanitize_text_field($camera_data['description']));
+        update_post_meta($post_id, '_camera_description', sanitize_text_field($camera_data['description']));
     }
 
     if (isset($camera_data['daily']) && !empty($camera_data['daily'])) {
-        update_post_meta($post_id, 'daily', sanitize_text_field($camera_data['daily']));
+        update_post_meta($post_id, '_camera_daily_price', sanitize_text_field($camera_data['daily']));
     }
 
     if (isset($camera_data['weekly']) && !empty($camera_data['weekly'])) {
-        update_post_meta($post_id, 'weekly', sanitize_text_field($camera_data['weekly']));
+        update_post_meta($post_id, '_camera_weekly_price', sanitize_text_field($camera_data['weekly']));
     }
 
     // Example: Add a custom field (price)
@@ -83,7 +83,7 @@ function create_camera_post()
     if (isset($camera_data['image']) && !empty($camera_data['image'])) {
         $image_id = intval($camera_data['image']);
         set_post_thumbnail($post_id, $image_id);
-        update_post_meta($post_id, 'image_url', sanitize_text_field($camera_data['imageUrl']));
+        update_post_meta($post_id, '_camera_image', sanitize_text_field($camera_data['imageUrl']));
     }
 
     // Respond with success
@@ -129,14 +129,15 @@ add_action('wp_ajax_delete_all_camera', 'delete_all_camera');
 // add_action('wp_ajax_nopriv_delete_all_camera', 'delete_all_camera');
 
 
-function get_camera_list() {
-    if ( ! current_user_can( 'manage_options' ) ) {
+function get_camera_list()
+{
+    if (! current_user_can('manage_options')) {
         wp_send_json_error();
     }
 
     // Get query parameters.
-    $paged  = isset( $_GET['paged'] ) ? intval( $_GET['paged'] ) : 1;
-    $search = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
+    $paged  = isset($_GET['paged']) ? intval($_GET['paged']) : 1;
+    $search = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
 
     // Set the number of items per page.
     $per_page = 5;
@@ -150,25 +151,25 @@ function get_camera_list() {
     ];
 
     // If a search term is provided, add it to the query.
-    if ( ! empty( $search ) ) {
+    if (! empty($search)) {
         // Note: The built-in 's' parameter searches in post title and content.
         // If you need to search a custom meta (like email), you could also add a meta_query.
         $args['s'] = $search;
     }
 
     // Execute the query.
-    $query = new WP_Query( $args );
+    $query = new WP_Query($args);
     $data  = [];
 
-    if ( $query->have_posts() ) {
-        while ( $query->have_posts() ) {
+    if ($query->have_posts()) {
+        while ($query->have_posts()) {
             $query->the_post();
 
-            $description = get_post_meta( get_the_ID(), 'description', true );
+            $description = get_post_meta(get_the_ID(), 'description', true);
             // $price = get_post_meta( get_the_ID(), 'price', true );
-            $daily = get_post_meta( get_the_ID(), 'daily', true );
-            $weekly = get_post_meta( get_the_ID(), 'weekly', true );
-            $image_url = get_post_meta( get_the_ID(), 'image_url', true );
+            $daily = get_post_meta(get_the_ID(), 'daily', true);
+            $weekly = get_post_meta(get_the_ID(), 'weekly', true);
+            $image_url = get_post_meta(get_the_ID(), 'image_url', true);
 
             // Build your row data. For example, using post ID, title and a meta field for email.
             $data[] = [
@@ -180,15 +181,15 @@ function get_camera_list() {
                 'weekly' => $weekly,
                 'brand' => wp_get_post_terms(get_the_ID(), 'brand'),
                 'type' => wp_get_post_terms(get_the_ID(), 'type'),
-                'image_url' => $image_url 
+                'image_url' => $image_url
             ];
         }
     }
     wp_reset_postdata();
 
     // Get total items and pages from the query.
-    $total_items = intval( $query->found_posts );
-    $total_pages = intval( $query->max_num_pages );
+    $total_items = intval($query->found_posts);
+    $total_pages = intval($query->max_num_pages);
 
     $result = [
         'items'        => $data,
@@ -198,6 +199,98 @@ function get_camera_list() {
         'current_page' => $paged,
     ];
 
-    wp_send_json_success( $result );
+    wp_send_json_success($result);
 }
-add_action( 'wp_ajax_get_camera_list', 'get_camera_list' );
+add_action('wp_ajax_get_camera_list', 'get_camera_list');
+
+function load_cameras_ajax_handler()
+{
+    $camera_brand = isset($_GET['camera_brand']) ? sanitize_text_field($_GET['camera_brand']) : '';
+    $camera_type  = isset($_GET['camera_type'])  ? sanitize_text_field($_GET['camera_type'])  : '';
+    $price_range  = isset($_GET['price_range'])  ? sanitize_text_field($_GET['price_range'])  : '';
+
+    $args = array(
+        'post_type'      => 'camera',
+        'posts_per_page' => -1,
+    );
+
+    // Build taxonomy query if brand or type are selected.
+    $tax_queries = array();
+    if (! empty($camera_brand)) {
+        $tax_queries[] = array(
+            'taxonomy' => 'brand',
+            'field'    => 'slug',
+            'terms'    => $camera_brand,
+        );
+    }
+    if (! empty($camera_type)) {
+        $tax_queries[] = array(
+            'taxonomy' => 'type',
+            'field'    => 'slug',
+            'terms'    => $camera_type,
+        );
+    }
+    if (! empty($tax_queries)) {
+        $args['tax_query'] = array_merge(array('relation' => 'AND'), $tax_queries);
+    }
+
+    // Add meta query for price range
+    // if (! empty($price_range)) {
+    //     $range = explode('-', $price_range);
+    //     if (count($range) === 2) {
+    //         $args['meta_query'] = array(
+    //             array(
+    //                 'key'     => 'price',
+    //                 'value'   => array(intval($range[0]), intval($range[1])),
+    //                 'compare' => 'BETWEEN',
+    //                 'type'    => 'NUMERIC',
+    //             ),
+    //         );
+    //     }
+    // }
+    
+    if (! empty($price_range)) {
+        $range = explode('-', $price_range);
+        if (count($range) === 2) {
+            $low = intval($range[0]);
+            $high = intval($range[1]);
+            $args['meta_query'] = array(
+                'relation' => 'OR',
+                array(
+                    'key'     => '_camera_daily_price',
+                    'value'   => array($low, $high),
+                    'compare' => 'BETWEEN',
+                    'type'    => 'NUMERIC',
+                ),
+                array(
+                    'key'     => '_camera_weekly_price',
+                    'value'   => array($low, $high),
+                    'compare' => 'BETWEEN',
+                    'type'    => 'NUMERIC',
+                ),
+            );
+        }
+    }
+
+    $query = new WP_Query($args);
+    if ($query->have_posts()) {
+        echo '<ul class="camera-list">';
+        while ($query->have_posts()) {
+            $query->the_post();
+            echo '<li>';
+            echo '<a href="' . esc_url(get_permalink()) . '">' . esc_html(get_the_title()) . '</a>';
+            $price = get_post_meta(get_the_ID(), 'price', true);
+            if ($price) {
+                echo ' - ' . esc_html($price);
+            }
+            echo '</li>';
+        }
+        echo '</ul>';
+    } else {
+        echo '<p>' . esc_html__('No cameras found.', 'camera-list') . '</p>';
+    }
+    wp_reset_postdata();
+    wp_die();
+}
+add_action('wp_ajax_load_cameras', 'load_cameras_ajax_handler');
+add_action('wp_ajax_nopriv_load_cameras', 'load_cameras_ajax_handler');
